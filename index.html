@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aesthetic Scorer</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            width: 90%;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        .image-container {
+            display: grid;
+            gap: 5px; /* Reduced gap between elements */
+            justify-content: center;
+        }
+        .image-card {
+            background-color: #1e1e1e;
+            border: 1px solid #333;
+            border-radius: 8px;
+            margin: 5px; /* Reduced margin */
+            padding: 5px; /* Reduced padding */
+            box-sizing: border-box;
+            width: auto;
+        }
+        .image-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .image-card h3 {
+            margin: 10px 0 5px 0;
+            font-size: 16px;
+        }
+        .data {
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        .data p {
+            margin: 3px 0; /* Reduced margin */
+        }
+        .error {
+            color: red;
+        }
+        .controls {
+            margin-bottom: 20px;
+        }
+		input{
+			width: 50px;
+		}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Aesthetic Scorer</h1>
+        <div class="controls">
+            <label for="columns">Columns:</label>
+            <input type="number" id="columns" name="columns" min="1" value="6" onchange="updateGridSettings()">
+            <label for="width">Size:</label>
+            <input type="number" id="width" name="width" min="100" value="250" onchange="updateGridSettings()">
+        </div>
+        <div id="message"></div>
+        <div class="image-container" id="image-container"></div>
+    </div>
+    <script>
+        async function fetchData() {
+            try {
+                const response = await fetch('output/results.json');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                const data = await response.json();
+                console.log('Data fetched successfully:', data);  // Log fetched data
+                return data;
+            } catch (error) {
+                console.error('There has been a problem with your fetch operation:', error);
+                return [];
+            }
+        }
+
+        function createImageCard(result) {
+            const card = document.createElement('div');
+            card.classList.add('image-card');
+            
+            const img = document.createElement('img');
+            img.src = `input/${result.filename}`;
+            img.alt = result.filename;
+            card.appendChild(img);
+
+            const title = document.createElement('h3');
+            title.textContent = result.filename;
+            card.appendChild(title);
+
+            const dataContainer = document.createElement('div');
+            dataContainer.classList.add('data');
+
+            const aestheticData = document.createElement('p');
+            const aestheticScore = (result.aesthetic.aesthetic * 100).toFixed(2);
+            aestheticData.innerHTML = `<strong>Aesthetic Score:</strong> ${aestheticScore}%`;
+            dataContainer.appendChild(aestheticData);
+
+            const styles = [
+                { label: 'Real Life', value: result.style.real_life },
+                { label: '3D', value: result.style['3d'] },
+                { label: 'Anime', value: result.style.anime },
+                { label: 'Manga', value: result.style.manga_like },
+                { label: 'Other', value: result.style.other }
+            ];
+
+            styles.forEach(style => {
+                const styleData = document.createElement('p');
+                const styleScore = (style.value * 100).toFixed(2);
+                styleData.innerHTML = `<strong>${style.label}:</strong> ${styleScore}%`;
+                dataContainer.appendChild(styleData);
+            });
+
+            const waifuData = document.createElement('p');
+            const waifuScore = (result.waifu.waifu * 100).toFixed(2);
+            waifuData.innerHTML = `<strong>Waifu:</strong> ${waifuScore}%`;
+            dataContainer.appendChild(waifuData);
+
+            card.appendChild(dataContainer);
+            return card;
+        }
+
+        function updateGridSettings() {
+            const columns = document.getElementById('columns').value;
+            const width = document.getElementById('width').value;
+            const imageContainer = document.getElementById('image-container');
+            const imageCards = document.querySelectorAll('.image-card');
+
+            imageContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            imageCards.forEach(card => {
+                card.style.width = `${parseInt(width) + 10}px`; // Adding padding to the card width
+                const img = card.querySelector('img');
+                img.style.width = `${width}px`;
+            });
+        }
+
+        async function init() {
+            const messageElement = document.getElementById('message');
+            const imageContainer = document.getElementById('image-container');
+            const data = await fetchData();
+
+            if (data.length === 0) {
+                messageElement.innerHTML = '<p class="error">No data found or there was an error loading the data.</p>';
+                return;
+            }
+
+            data.forEach(result => {
+                const card = createImageCard(result);
+                imageContainer.appendChild(card);
+            });
+
+            // messageElement.innerHTML = '<p>Data loaded successfully.</p>';
+            updateGridSettings();
+        }
+
+        init();
+    </script>
+</body>
+</html>
