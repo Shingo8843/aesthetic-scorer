@@ -3,4 +3,3 @@ colorama
 transformers
 pillow
 flask
-torch==2.0.1+cu121 torchvision==0.15.2+cu121 torchaudio==2.0.2+cu121 --find-links https://download.pytorch.org/whl/cu121
