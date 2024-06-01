@@ -53,7 +53,7 @@ Alternatively:
 
 
 # Known Issues
-[] The realistic value isn't properly being sorted with the drop-down menu (therefore commented out)
+[ ] The realistic value isn't properly being sorted with the drop-down menu (therefore commented out)
 
 # Todo
-[] Add a "Clear" button to the left side of the filters on the webui
+[ ] Add a "Clear" button to the left side of the filters on the webui
