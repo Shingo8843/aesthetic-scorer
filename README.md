@@ -50,3 +50,10 @@ Alternatively:
 3. (Optional) Launch a web server: `python -m http.server 8000` and open [`http://localhost:8000/index.html`](http://localhost:8000/index.html) in your web browser.
 4. Edit `pruneconfig.ini` with your pruning preferences (using < and > and full integers as %-values).
 5. Run `prune.py`.
+
+
+# Known Issues
+- [ ] The realistic value isn't properly being sorted with the drop-down menu (therefore commented out)
+
+# Todo
+- [ ] Add a "Clear" button to the left side of the filters on the webui
