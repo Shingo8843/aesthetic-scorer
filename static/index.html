@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aesthetic Scorer</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="icon" type="image/png" href="/static/favicon.ico">
+</head>
+<body>
+    <div class="container">
+        <h1>Aesthetic Scorer</h1>
+        <div class="settings-toggle" onclick="toggleSettings()">
+            <img src="/static/down-arrow.png" alt="Expand">
+        </div>
+        <div class="controls" id="settings">
+            <div class="grid-controls">
+                <label for="columns">Columns:</label>
+                <input type="number" id="columns" name="columns" min="1" value="6">
+                <label for="width">Size:</label>
+                <input type="number" id="width" name="width" min="100" value="250">
+                <label for="sort">Sort by:</label>
+                <select id="sort" name="sort" onchange="sortImages()">
+                    <option value="aesthetic_desc">Aesthetic ↓</option>
+                    <option value="aesthetic_asc">Aesthetic ↑</option>
+                    <!--<option value="real_life_desc">Realistic ↓ (broken)</option>
+                    <option value="real_life_asc">Realistic ↑ (broken)</option>-->
+                    <option value="3d_desc">3D ↓</option>
+                    <option value="3d_asc">3D ↑</option>
+                    <option value="anime_desc">Anime ↓</option>
+                    <option value="anime_asc">Anime ↑</option>
+                    <option value="other_desc">Other ↓</option>
+                    <option value="other_asc">Other ↑</option>
+                    <option value="manga_desc">Manga ↓</option>
+                    <option value="manga_asc">Manga ↑</option>
+                    <option value="waifu_desc">Waifu ↓</option>
+                    <option value="waifu_asc">Waifu ↑</option>                    
+                </select>
+            </div>
+            <div class="prune-controls">
+                <h3>Filter / Prune Settings</h3>
+                <label for="aesthetic">Aesthetic:</label>
+                <input type="text" id="aesthetic" name="aesthetic">
+                <label for="real_life">Realistic:</label>
+                <input type="text" id="real_life" name="real_life">
+                <label for="3d">3D:</label>
+                <input type="text" id="3d" name="3d">
+                <label for="anime">Anime:</label>
+                <input type="text" id="anime" name="anime">
+                <label for="other">Other:</label>
+                <input type="text" id="other" name="other">
+                <label for="manga">Manga:</label>
+                <input type="text" id="manga" name="manga">
+                <label for="waifu">Waifu:</label>
+                <input type="text" id="waifu" name="waifu">
+                <button onclick="pruneImages()">Prune</button>
+            </div>
+        </div>
+        <div id="message"></div>
+        <div class="image-container" id="image-container"></div>
+    </div>
+    <script>
+        let allData = [];
+        let prunedFilenames = [];
+
+        async function fetchData() {
+            try {
+                const response = await fetch('/results.json');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                const data = await response.json();
+                console.log('Data fetched successfully:', data);
+                return data;
+            } catch (error) {
+                console.error('There has been a problem with your fetch operation:', error);
+                return [];
+            }
+        }
+
+        async function fetchPrunedData() {
+            try {
+                const response = await fetch('/pruned/pruned.json');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                const data = await response.json();
+                console.log('Pruned data fetched successfully:', data);
+                return data.map(item => item.filename);
+            } catch (error) {
+                console.error('There has been a problem with your fetch operation:', error);
+                return [];
+            }
+        }
+
+        async function fetchPruneConfig() {
+            try {
+                const response = await fetch('/pruneconfig.ini');
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                const text = await response.text();
+                const config = {};
+                text.split('\n').forEach(line => {
+                    const [key, value] = line.split('=').map(part => part.trim());
+                    if (key && value !== undefined) {
+                        config[key] = value;
+                    }
+                });
+                console.log('Config fetched successfully:', config);
+                return config;
+            } catch (error) {
+                console.error('There has been a problem with your fetch operation:', error);
+                return {};
+            }
+        }
+
+        function createImageCard(result) {
+            const card = document.createElement('div');
+            card.classList.add('image-card');
+            
+            const img = document.createElement('img');
+            img.src = `/input/${result.filename}`;
+            img.alt = result.filename;
+            card.appendChild(img);
+
+            const title = document.createElement('h3');
+            title.textContent = result.filename;
+            card.appendChild(title);
+
+            const dataContainer = document.createElement('div');
+            dataContainer.classList.add('data');
+
+            const aestheticData = document.createElement('p');
+            const aestheticScore = (result.aesthetic.aesthetic * 100).toFixed(2);
+            aestheticData.innerHTML = `<strong>Aesthetic Score:</strong> ${aestheticScore}%`;
+            dataContainer.appendChild(aestheticData);
+
+            const styles = [
+                { label: 'Realistic', value: result.style.real_life },
+                { label: '3D', value: result.style['3d'] },
+                { label: 'Anime', value: result.style.anime },
+                { label: 'Manga', value: result.style.manga_like },
+                { label: 'Other', value: result.style.other }
+            ];
+
+            styles.forEach(style => {
+                const styleData = document.createElement('p');
+                const styleScore = (style.value * 100).toFixed(2);
+                styleData.innerHTML = `<strong>${style.label}:</strong> ${styleScore}%`;
+                dataContainer.appendChild(styleData);
+            });
+
+            const waifuData = document.createElement('p');
+            const waifuScore = (result.waifu.waifu * 100).toFixed(2);
+            waifuData.innerHTML = `<strong>Waifu:</strong> ${waifuScore}%`;
+            dataContainer.appendChild(waifuData);
+
+            card.appendChild(dataContainer);
+            return card;
+        }
+
+        function updateGridSettings() {
+            const columns = document.getElementById('columns').value;
+            const width = document.getElementById('width').value;
+            const imageContainer = document.getElementById('image-container');
+            const imageCards = document.querySelectorAll('.image-card');
+
+            imageContainer.style.gridTemplateColumns = `repeat(${columns}, 1fr)`;
+            imageCards.forEach(card => {
+                card.style.width = `${parseInt(width) + 10}px`;
+                const img = card.querySelector('img');
+                img.style.width = `${width}px`;
+            });
+        }
+
+        function toggleSettings() {
+            const settings = document.getElementById('settings');
+            const toggleIcon = document.querySelector('.settings-toggle img');
+            if (settings.classList.contains('expanded')) {
+                settings.classList.remove('expanded');
+                settings.style.maxHeight = '0';
+                settings.style.padding = '0';
+                toggleIcon.classList.remove('rotated');
+            } else {
+                settings.classList.add('expanded');
+                settings.style.maxHeight = settings.scrollHeight + 'px';
+                settings.style.padding = '10px 0';
+                toggleIcon.classList.add('rotated');
+            }
+        }
+
+        function getPruneSettings() {
+            return {
+                aesthetic: document.getElementById('aesthetic').value,
+                real_life: document.getElementById('real_life').value,
+                '3d': document.getElementById('3d').value,
+                anime: document.getElementById('anime').value,
+                other: document.getElementById('other').value,
+                manga: document.getElementById('manga').value,
+                waifu: document.getElementById('waifu').value,
+            };
+        }
+
+        function evaluateCondition(value, condition) {
+            if (!condition.trim()) {
+                return true;
+            }
+            const matches = condition.trim().match(/^([<>]=?|=)\s*(\d*\.?\d+)?$/);
+            if (!matches || !matches[2]) {
+                console.log(`Ignoring invalid condition: ${condition}`);
+                return true;
+            }
+            const [, op, thresholdStr] = matches;
+            const threshold = parseFloat(thresholdStr) / 100;
+            console.log(`Evaluating condition: ${value} ${op} ${threshold}`);
+            switch (op) {
+                case '>':
+                    return value > threshold;
+                case '>=':
+                    return value >= threshold;
+                case '<':
+                    return value < threshold;
+                case '<=':
+                    return value <= threshold;
+                case '=':
+                    return value === threshold;
+                default:
+                    return true;
+            }
+        }
+
+        function updatePruneSettings() {
+            const settings = getPruneSettings();
+            console.log('Applying prune settings:', settings);
+            document.querySelectorAll('.image-card').forEach(card => {
+                const result = allData.find(item => item.filename === card.querySelector('img').alt);
+                console.log('Checking result:', result);
+                let show = true;
+                for (const key in settings) {
+                    let value;
+                    if (key === 'aesthetic') {
+                        value = result.aesthetic.aesthetic;
+                    } else if (key === 'waifu') {
+                        value = result.waifu.waifu;
+                    } else if (key === 'manga') {
+                        value = result.style.manga_like;
+                    } else {
+                        value = result.style[key];
+                    }
+                    if (settings[key] && value !== undefined && !evaluateCondition(value, settings[key])) {
+                        show = false;
+                        break;
+                    }
+                }
+                card.style.display = show ? 'block' : 'none';
+            });
+        }
+
+        async function init() {
+            const messageElement = document.getElementById('message');
+            const imageContainer = document.getElementById('image-container');
+            const data = await fetchData();
+            allData = data;
+
+            const prunedData = await fetchPrunedData();
+            prunedFilenames = prunedData;
+
+            const filteredData = data.filter(item => !prunedFilenames.includes(item.filename));
+
+            if (filteredData.length === 0) {
+                messageElement.innerHTML = '<p class="error">No data found or there was an error loading the data.</p>';
+                return;
+            }
+
+            filteredData.forEach(result => {
+                const card = createImageCard(result);
+                imageContainer.appendChild(card);
+            });
+
+            // Debug: Log structure of the first data entry
+            console.log('Structure of the first data entry:', allData[0]);
+
+            const config = await fetchPruneConfig();
+            document.getElementById('aesthetic').value = config.aesthetic || '';
+            document.getElementById('real_life').value = config.real_life || '';
+            document.getElementById('3d').value = config['3d'] || '';
+            document.getElementById('anime').value = config.anime || '';
+            document.getElementById('other').value = config.other || '';
+            document.getElementById('manga').value = config.manga || '';
+            document.getElementById('waifu').value = config.waifu || '';
+
+            updateGridSettings();
+            updatePruneSettings();
+        }
+
+        function pruneImages() {
+            const settings = getPruneSettings();
+
+            const pruneConfig = Object.keys(settings).map(key => `${key} = ${settings[key]}`).join('\n');
+            fetch('/save-pruneconfig', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: pruneConfig,
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log(data);
+                return fetch('/run-prune');
+            })
+            .then(response => response.text())
+            .then(data => {
+                console.log(data);
+                alert('Prune operation completed.');
+                location.reload();
+            })
+            .catch(error => {
+                console.error('Error running prune operation:', error);
+                alert('Error running prune operation.');
+            });
+        }
+
+        function sendLogToServer(logMessage) {
+            fetch('/log', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ message: logMessage }),
+            });
+        }
+
+        function sortImages() {
+            const sortOption = document.getElementById('sort').value;
+            const [key, order] = sortOption.split('_');
+
+            allData.sort((a, b) => {
+                let aValue, bValue;
+
+                if (key === 'aesthetic') {
+                    aValue = a.aesthetic.aesthetic;
+                    bValue = b.aesthetic.aesthetic;
+                } else if (key === 'waifu') {
+                    aValue = a.waifu.waifu;
+                    bValue = b.waifu.waifu;
+                } else if (key === 'manga') {
+                    aValue = a.style.manga_like;
+                    bValue = b.style.manga_like;
+                } else if (key === 'real_life') {
+                    aValue = a.style.real_life;
+                    bValue = b.style.real_life;
+                } else if (key === '3d') {
+                    aValue = a.style['3d'];
+                    bValue = b.style['3d'];
+                } else if (key === 'anime') {
+                    aValue = a.style.anime;
+                    bValue = b.style.anime;
+                } else if (key === 'other') {
+                    aValue = a.style.other;
+                    bValue = b.style.other;
+                } else {
+                    aValue = 0;
+                    bValue = 0;
+                }
+
+                aValue = aValue === undefined ? 0 : aValue;
+                bValue = bValue === undefined ? 0 : bValue;
+
+                if (order === 'asc') {
+                    return aValue - bValue;
+                } else {
+                    return bValue - aValue;
+                }
+            });
+
+            const imageContainer = document.getElementById('image-container');
+            imageContainer.innerHTML = '';
+            allData.forEach(result => {
+                const card = createImageCard(result);
+                imageContainer.appendChild(card);
+            });
+        }
+
+
+
+
+        function addEventListeners() {
+            const pruneInputs = document.querySelectorAll('.prune-controls input');
+            pruneInputs.forEach(input => {
+                input.addEventListener('input', updatePruneSettings);
+            });
+
+            const gridInputs = document.querySelectorAll('.grid-controls input');
+            gridInputs.forEach(input => {
+                input.addEventListener('input', updateGridSettings);
+            });
+        }
+
+        init();
+        addEventListeners();
+    </script>
+</body>
+</html>
