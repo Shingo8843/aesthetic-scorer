@@ -42,7 +42,7 @@ cache = {}
 def process_images_recursively(input_dir):
     for root, _, files in os.walk(input_dir):
         for file in files:
-            if file.endswith(".jpg") or file.endswith(".png"):
+            if file.endswith(".jpg") or file.endswith(".png") or file.endswith(".jpeg"):
                 input_img_path = os.path.join(root, file)
                 relative_path = os.path.relpath(input_img_path, input_dir)
                 
