@@ -118,6 +118,13 @@ if exist requirements.txt (
 echo Listing installed packages...
 pip list
 
+:: Provide PyTorch installation instructions
+echo Please install the correct version of PyTorch for your version of CUDA. Visit https://pytorch.org/ to find out the details.
+echo It's usually:
+echo pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu121
+echo or
+echo pip3 install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
 echo Setup complete. Your virtual environment is ready.
 echo To deactivate the virtual environment, type 'deactivate'.
 
