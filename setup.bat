@@ -30,7 +30,7 @@ set SELECTED_PYTHON_VER=!PYTHON_VER_%PYTHON_SELECTION%!
 
 :: The version string is expected to be in the format "-V:X.Y *"
 :: We'll use a for loop to extract just the "X.Y" part
-for /f "tokens=2 delims=: " %%i in ("!SELECTED_PYTHON_VER!") do (
+for /f "tokens=2 delims=:- " %%i in ("!SELECTED_PYTHON_VER!") do (
     set "SELECTED_PYTHON_VER=%%i"
 )
 
@@ -45,6 +45,15 @@ if "!VENV_NAME!"=="" set VENV_NAME=venv
 :: Create the virtual environment using the selected Python version
 echo Creating virtual environment named %VENV_NAME%...
 py -%SELECTED_PYTHON_VER% -m venv %VENV_NAME%
+
+:: Add .gitignore to the virtual environment folder
+echo Creating .gitignore in the %VENV_NAME% folder...
+(
+echo # Ignore all content in the virtual environment directory
+echo *
+echo # Except this file
+echo !.gitignore
+) > %VENV_NAME%\.gitignore
 
 :: Generate the venv_activate.bat file
 echo Generating venv_activate.bat...
